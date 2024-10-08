@@ -25,9 +25,15 @@ def load_housing_data(housing_path=HOUSING_PATH):
     csv_path = os.path.join(housing_path, "housing.csv")
     return pd.read_csv(csv_path)
 
-housing = load_housing_data
+###Added the function call
+fetch_housing_data(housing_url=HOUSING_URL, housing_path=HOUSING_PATH)
+
+###Corrected the instantiation
+housing = load_housing_data()
+#housing = load_housing_data
 
 from sklearn.model_selection import train_test_split
+#from sklearn.cross_validation  import train_test_split
 
 train_set, test_set = train_test_split(housing, test_size=0.2, random_state=42)
 
@@ -38,21 +44,30 @@ housing["income_cat"] = pd.cut(housing["median_income"],
 from sklearn.model_selection import StratifiedShuffleSplit
 
 split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-for train_index, test_index in split.split(housing, housing["income_cat"]):
-    strat_train_set = housing.loc[train_index]
-    strat_test_set = housing.loc[test_index]
 
+for train_index, test_index in split.split(housing, housing["income_cat"]):
+    #print(train_index)
+    #print(test_index)
+    ###Corrected the indexation
+    strat_train_set = housing.iloc[train_index,:]
+    #strat_train_set = housing.loc[train_index]
+    ###Corrected the indexation
+    strat_test_set = housing.iloc[test_index,:]
+    #strat_test_set = housing.loc[test_index]
 
 def income_cat_proportions(data):
     return data["income_cat"].value_counts() / len(data)
 
+##Check the below line
 train_set, test_set = train_test_split(housing, test_size=0.2, random_state=42)
 
+##Check the below line
 compare_props = pd.DataFrame({
     "Overall": income_cat_proportions(housing),
     "Stratified": income_cat_proportions(strat_test_set),
     "Random": income_cat_proportions(test_set),
 }).sort_index()
+
 compare_props["Rand. %error"] = 100 * compare_props["Random"] / compare_props["Overall"] - 100
 compare_props["Strat. %error"] = 100 * compare_props["Stratified"] / compare_props["Overall"] - 100
 
@@ -63,7 +78,10 @@ housing = strat_train_set.copy()
 housing.plot(kind="scatter", x="longitude", y="latitude")
 housing.plot(kind="scatter", x="longitude", y="latitude", alpha=0.1)
 
-corr_matrix = housing.corr()
+#Added correct usage of the corr method
+#corr_matrix = housing.corr()
+corr_matrix = housing.corr(numeric_only=True)
+#housing.corr(numeric_only=True)
 corr_matrix["median_house_value"].sort_values(ascending=False)
 housing["rooms_per_household"] = housing["total_rooms"]/housing["households"]
 housing["bedrooms_per_room"] = housing["total_bedrooms"]/housing["total_rooms"]
@@ -98,12 +116,12 @@ from sklearn.metrics import mean_squared_error
 housing_predictions = lin_reg.predict(housing_prepared)
 lin_mse = mean_squared_error(housing_labels, housing_predictions)
 lin_rmse = np.sqrt(lin_mse)
-lin_rmse
+print(lin_rmse)
 
 
 from sklearn.metrics import mean_absolute_error
 lin_mae = mean_absolute_error(housing_labels, housing_predictions)
-lin_mae
+print(lin_mae)
 
 
 from sklearn.tree import DecisionTreeRegressor
@@ -114,7 +132,7 @@ tree_reg.fit(housing_prepared, housing_labels)
 housing_predictions = tree_reg.predict(housing_prepared)
 tree_mse = mean_squared_error(housing_labels, housing_predictions)
 tree_rmse = np.sqrt(tree_mse)
-tree_rmse
+print(tree_rmse)
 
 
 from sklearn.ensemble import RandomForestRegressor
@@ -131,6 +149,7 @@ rnd_search = RandomizedSearchCV(forest_reg, param_distributions=param_distribs,
                                 n_iter=10, cv=5, scoring='neg_mean_squared_error', random_state=42)
 rnd_search.fit(housing_prepared, housing_labels)
 cvres = rnd_search.cv_results_
+
 for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
     print(np.sqrt(-mean_score), params)
 
@@ -150,7 +169,8 @@ grid_search = GridSearchCV(forest_reg, param_grid, cv=5,
                            scoring='neg_mean_squared_error', return_train_score=True)
 grid_search.fit(housing_prepared, housing_labels)
 
-grid_search.best_params_
+print(grid_search.best_params_)
+
 cvres = grid_search.cv_results_
 for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
     print(np.sqrt(-mean_score), params)
@@ -175,7 +195,20 @@ X_test_prepared["population_per_household"]=X_test_prepared["population"]/X_test
 X_test_cat = X_test[['ocean_proximity']]
 X_test_prepared = X_test_prepared.join(pd.get_dummies(X_test_cat, drop_first=True))
 
+###Adjusting any missing columns in the test / train
+cols_add = [i for i in housing_prepared.columns if i not in X_test_prepared.columns]
+
+if len(cols_add) > 0:
+    for i in cols_add:
+        X_test_prepared[i] = 0
+
+cols_remove = [i for i in X_test_prepared.columns if i not in housing_prepared.columns]
+
+if len(cols_remove) > 0:
+    for i in cols_remove:
+        X_test_prepared=X_test_prepared.drop(str(i),axis=1)
 
 final_predictions = final_model.predict(X_test_prepared)
 final_mse = mean_squared_error(y_test, final_predictions)
 final_rmse = np.sqrt(final_mse)
+print(f'''RMSE = {final_rmse}''')
