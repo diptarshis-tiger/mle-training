@@ -8,13 +8,14 @@ from six.moves import urllib
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import (
     GridSearchCV,
     RandomizedSearchCV,
     StratifiedShuffleSplit,
     train_test_split,
 )
+from sklearn.tree import DecisionTreeRegressor
 
 DOWNLOAD_ROOT = "https://raw.githubusercontent.com/ageron/handson-ml/master/"
 HOUSING_PATH = os.path.join("datasets", "housing")
@@ -154,13 +155,9 @@ lin_rmse = np.sqrt(lin_mse)
 print(lin_rmse)
 
 
-from sklearn.metrics import mean_absolute_error
-
 lin_mae = mean_absolute_error(housing_labels, housing_predictions)
 print(lin_mae)
 
-
-from sklearn.tree import DecisionTreeRegressor
 
 tree_reg = DecisionTreeRegressor(random_state=42)
 tree_reg.fit(housing_prepared, housing_labels)
